@@ -2,6 +2,10 @@
 
 A custom web component element which provides a custom date picker and developed by considering material design principles.
 
+![Portrait Mode View](https://raw.github.com/Turksat/edk-date-picker/master/portrait-mode.png)
+
+![Landscape Mode View](https://raw.github.com/Turksat/edk-date-picker/master/landscape-mode.png)
+
 
 ## Dependencies
 
