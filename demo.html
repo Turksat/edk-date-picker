@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+
+  <title>edk-date-picker Demo</title>
+
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1, user-scalable=no">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+  <script src="bower_components/webcomponentsjs/webcomponents.js"></script>
+
+  <link rel="import" href="bower_components/paper-styles/typography.html">
+  <link href="edk-date-picker.html" rel="import">
+
+  <style is="custom-style">
+    body{font-family: RobotoDraft, 'Helvetica Neue', Helvetica, Arial;}
+    edk-date-picker{margin-top:10px;}
+    edk-date-picker.red{
+      --edk-date-picker-color:red;
+    }
+  </style>
+
+</head>
+<body unresolved>
+    Default usage and event handlers<br>
+    <edk-date-picker id="datepicker"></edk-date-picker>
+
+    <br>Range Selector<br>
+    <edk-date-picker range-selector></edk-date-picker>
+
+    <br>Min - Max<br>
+    <edk-date-picker min="28/11/2015" max="25/12/2015"></edk-date-picker>
+
+    <br>Colored<br>
+    <edk-date-picker class="red"></edk-date-picker>
+
+    <script>
+      document.querySelector('#datepicker').addEventListener('date-selected', function(e) {
+        console.log(e.detail);
+      });
+      document.querySelector('#datepicker').addEventListener('date-cleared', function(e) {
+        console.log("DATE CLEARED");
+      });
+      document.querySelector('#datepicker').addEventListener('ok-clicked', function(e) {
+        console.log("OK CLICKED");
+      });
+    </script>
+
+</body>
+</html>

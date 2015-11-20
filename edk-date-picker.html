@@ -1,0 +1,423 @@
+<link href="bower_components/polymer/polymer.html" rel="import">
+<link href="bower_components/paper-button/paper-button.html" rel="import">
+<link href="bower_components/paper-icon-button/paper-icon-button.html" rel="import">
+<link href="bower_components/iron-flex-layout/iron-flex-layout.html" rel="import">
+<link href="bower_components/iron-selector/iron-selector.html" rel="import">
+<link href="bower_components/iron-icons/iron-icons.html" rel="import">
+<script src="moment-with-locales.js"></script>
+<!--
+`edk-date-picker` component is used to pick a date or a date range. Its design is based on material design principles.
+Landscape and portrait modes are detected and date picker is created depending on orientation on the page.
+
+[MomentJS](http://momentjs.com/) library is used for date functions. Javascript file which contains localization properties is included in this component.
+So any language might be set easily by using "locale" attribute. The default one is Turkish.
+
+Start day of the week is set as Monday by default. This might be changed.
+
+### Simple Use
+
+    <edk-date-picker></edk-date-picker>
+
+### Complex Use
+
+    <edk-date-picker range-selector
+                     min="01.15.2015"
+                     max="01.25.2015"
+                     format="dd.MM.yyyy"
+                     locale="tr"
+                     value="{{dateValue}}"
+                     on-date-selected="_selectionCallback"
+                     on-date-cleared="_clearCallback"
+                     on-ok-clicked="_okCallback">
+    </edk-date-picker>
+
+### Styling
+
+The following custom properties and mixins are available for styling:
+
+Custom property | Description | Default
+----------------|-------------|----------
+`--edk-date-picker-color` | General color that effects everything inside component | #009688
+
+@element edk-date-picker
+@demo demo.html
+-->
+<dom-module id="edk-date-picker">
+<template>
+
+  <style>
+
+      :host{display:block; overflow:auto; --edk-date-picker-color: #009688;}
+      .clear {display: table; content: " "; clear:both;}
+
+      .datepicker{border: solid 1px var(--edk-date-picker-color); display: inline-block;}
+      .datepicker h2{margin:20px 0 5px;}
+
+      .edkHeaderContainer {background:var(--edk-date-picker-color); color:#FFF; float:left; text-align: center;}
+      .edkHeaderContainer .edkDayName{width:100%; display:block; background:rgba(0,0,0,0.30); padding:4px 0; font-size:18px; color:#FFF; }
+      .edkHeaderContainer .edkMonth {width:100%; margin:0; font-size:20px;}
+      .edkHeaderContainer .edkDayNumber{width:100%; display: block; font-size:46px; font-weight: 400;}
+      .edkHeaderContainer .edkYear {-webkit-appearance: none; appearance: none; border-radius:0; -webkit-border-radius:0; border:0; background: transparent; color:#FFF; font-size:18px; opacity:0.8; margin:10px auto 10px; display:block; text-align:center;}
+
+      .edkDaysContainer {background-color: #FFF;}
+      .edkDaysContainer .edkDaysContent{float:left; padding:0 3%; width:94%; position:relative; }
+      .edkDaysContainer .datepickerTitle{@apply(--layout-flex); font-size:16px; color:var(--edk-date-picker-color); text-align:center; display:block; padding-top:10px;}
+      .edkDaysContainer .daysContainerHead{@apply(--layout-horizontal); margin: 2px 0;}
+      .edkDaysContainer .daysContainerHead span{margin-top: 1px;}
+      .edkDaysContainer .daysContainerHead paper-icon-button{color:#666;}
+      .edkDaysContainer {float:left; width:100%; }
+      .edkDaysContainer ul {margin:0; padding:0; display:block; width:100%;}
+      .edkDaysContainer ul.days paper-button{color: #777; background: transparent; margin: 0;}
+      .edkDaysContainer ul.days li {margin:1px 0;}
+      .edkDaysContainer li {list-style-type:none; float:left; width:14%; text-align:center; color:#777; font-size:14px; }
+      .edkDaysContainer li a {float:left; padding:8px 0; width:100%; text-align:center;  color:var(--edk-date-picker-color); background:#FFF; border-radius:50%;-webkit-border-radius:50%; text-decoration:none;}
+      .edkDaysContainer .m15 li {margin:5px 0;}
+
+      #edkDaysMatrix paper-button{border-radius:30px; min-width:2.7em;}
+      #edkDaysMatrix paper-button[aria-disabled=true]{background-color:#FFF; color:#DDD;}
+      #edkDaysMatrix paper-button.selected{background-color:var(--edk-date-picker-color); color:#FFF;}
+      #edkDaysMatrix paper-button.today{background-color:#F1F1F1;}
+      #edkDaysMatrix paper-button.empty{color:#FFF;}
+      #edkDaysMatrix paper-button.range{-webkit-box-shadow:inset 0px 0px 0px 1px var(--edk-date-picker-color); box-shadow:inset 0px 0px 0px 1px var(--edk-date-picker-color);}
+
+      #edkMonthsContainer {display:none;}
+      #edkMonthsContainer .monthListContainer{position:absolute; padding-top: 30px; left:2px; top:0; right:0; bottom:1px; background:#FFF;}
+      #edkMonthsContainer .monthToSelect{float:left; width:33%; margin-top:10px; color:#666;}
+      #edkMonthsContainer .monthToSelect paper-button{text-align:center; padding:20px 0; width:100%; float:left; margin:0; font-size:14px;}
+      #edkMonthsContainer .monthToSelect.iron-selected paper-button{background:#EEE;}
+
+      .buttonsContainer paper-button{font-size: 14px; float:right; background: transparent; color:var(--edk-date-picker-color); margin:0 5px 5px;}
+
+      @media screen and (orientation:portrait) {
+        .datepicker{width:310px; height: 520px; background:#FFF;}
+        .edkHeaderContainer{width:100%;}
+      }
+
+      @media screen and (orientation:landscape) {
+          .datepicker{width:520px; height:332px;}
+          .edkHeaderContainer{ width:40%; height:100%;}
+          .edkHeaderContainer .edkMonth{margin-top:60px !important;}
+          .edkDaysContainer{ width:60%; height:100%; padding:0;}
+      }
+
+  </style>
+
+
+   <div class="datepicker">
+
+      <div class="edkHeaderContainer">
+           <span class="edkDayName">{{dateJSON.dayName}}</span>
+           <paper-button class="edkMonth edk-date-picker-button" on-tap="_showMonths">{{dateJSON.monthNameShort}}</paper-button>
+           <span class="edkDayNumber">{{dateJSON.day}}</span>
+           <select class="edkYear" id="edkYears" on-change="_changeYear">
+             <template is="dom-repeat" items="{{years}}">
+               <option value="{{item}}" selected$="{{_isYearSelected(date,item)}}">{{item}}</option>
+             </template>
+           </select>
+           <div class="clear"></div>
+      </div>
+
+      <div class="edkDaysContainer">
+          <div class="edkDaysContent">
+
+          <!-- Previous & Next Month Buttons -->
+                <div class="daysContainerHead">
+                  <paper-icon-button icon="chevron-left" title="arrow-back" on-tap="_previousMonth"></paper-icon-button>
+                  <span class="datepickerTitle">{{_computeHeaderDate(dateJSON.monthName, dateJSON.year)}}</span>
+                  <paper-icon-button icon="chevron-right" title="arrow-forward" on-tap="_nextMonth"></paper-icon-button>
+                </div>
+                <ul class="m15">
+                  <template is="dom-repeat" items="{{weekdaysShort}}">
+                    <li>{{item}}</li>
+                  </template>
+                </ul>
+                <div class="clear"></div>
+
+          <!-- Days Container -->
+                <div id="edkDaysMatrix">
+                  <ul class="days">
+                    <iron-selector id="daySelector" on-iron-select="_selectDay" selectable=".selectable">
+                      <template is="dom-repeat" items="{{dateJSON.days}}">
+                        <li class$="{{_computeSelectableClass(value,item)}}">
+                          <paper-button
+                                     class$="{{_computeDayButtonClass(value,item)}}"
+                                     disabled$="{{_computeIsDayDisabled(value,item)}}"
+                                     day="{{item}}">{{item}}</paper-button>
+                        </li>
+                      </template>
+                    </iron-selector>
+                  </ul>
+                </div>
+                <div class="clear"></div>
+
+          <!-- OK & Cancel Buttons -->
+                <div class="buttonsContainer">
+                  <paper-button class="edk-date-picker-button" on-tap="_okClicked">Tamam</paper-button>
+                  <paper-button class="edk-date-picker-button" on-tap="clear">Temizle</paper-button>
+                </div>
+
+          <!-- Months Selector Container -->
+                <div id="edkMonthsContainer">
+                  <div class="monthListContainer">
+                    <iron-selector id="monthsSelector" on-iron-select="_changeMonth">
+                      <template is="dom-repeat" items="{{months}}">
+                        <div class="monthToSelect">
+                          <paper-button class="edk-date-picker-button">{{item}}</paper-button>
+                        </div>
+                      </template>
+                    </iron-selector>
+                  </div>
+                </div>
+
+          </div>
+      </div>
+
+   </div>
+
+</template>
+<script>
+
+  Polymer({
+
+        is: 'edk-date-picker',
+
+        /*
+          Is fired when a date is selected
+          @event date-selected
+        */
+        /*
+          Is fired when date is cleared
+          @event date-cleared
+        */
+        /*
+          Is fired when OK button is clicked
+          @event ok-clicked
+        */
+
+        properties: {
+          /* Date selected*/
+          value: { type: String, value: null, notify: true},
+          /* The flag that decides if the date is just a day or range*/
+          rangeSelector: {type: Boolean, value: false},
+          /* Minimum date value user can select. The value must be in the same format as 'format' parameter */
+          min: {type: String, value: '01/01/1900'},
+          /* Maximum date value user can select. The value must be in the same format as 'format' parameter. Default value is TODAY + 100 years */
+          max: {type: String, value: null},
+          /* Format of the date and date range parameters which moment.js accepts. */
+          format: {type: String, value: 'DD/MM/YYYY'},
+          /* Localization code for moments.js */
+          locale: {type: String, value: 'tr'},
+        },
+
+        attached: function(){
+
+            /* calendar init */
+            moment.locale(this.locale);
+            this.value = null;
+            this.date = moment();
+            this.dateJSON = {};
+            this.today = moment([this.date.year(), this.date.month(), this.date.date()]);
+            this.weekdaysShort = moment.weekdaysMin();
+
+            /* Setting Monday as the first day of the week */
+            var sundayShort = this.weekdaysShort.shift();
+            this.weekdaysShort.push(sundayShort);
+            /* END - Setting Monday as the first day of the week */
+
+            this.months = moment.months();
+            this.years = [];
+            for(var i=0; i<200; i++){
+              this.push('years', this.date.year() + (i-100));
+            }
+
+            /* parameters init */
+            this.min = this.min ? moment(this.min, this.format).subtract(1,'days') : moment([1900,0,1]);
+            this.max = this.max ? moment(this.max, this.format).add(1,'days') : moment([this.date.year() + 100,0,1]);
+
+            this.$.monthsSelector.select(this.date.month()); // This also fills the calendar. No need to call _fillCalendar() method.
+        },
+
+        /* The method which clears the dates and brings date picker to its initial state */
+        clear: function(){
+          this.fire('date-cleared', this.value);
+          this.set("value", null);
+          this.set("date", moment());
+          this._fillCalendar();
+        },
+
+        _fillCalendar: function(){
+
+            /* variables to be shown on calendar */
+            this.dateJSON = {
+                              'days':[],
+                              'day':this.date.date(),
+                              'dayName':this.date.format("dddd"),
+                              'month':this.date.month(),
+                              'monthName':this.date.format("MMMM"),
+                              'monthNameShort':this.date.format("MMM"),
+                              'year':this.date.year()
+                            };
+
+            /* filling days */
+            var tempDate = moment(this.date);
+            var daysInMonth = tempDate.daysInMonth();
+            var numberOfEmptyDaysBeginning = tempDate.date(1).weekday(); //First day number of month
+            var numberOfEmptyDaysEnd = 7 - tempDate.endOf("month").weekday() -1;
+            for(i=0; i<numberOfEmptyDaysBeginning; i++){
+                this.push('dateJSON.days', ".");
+            }
+            for(var i=0; i<daysInMonth; i++){
+                this.push('dateJSON.days', i+1);
+            }
+            for(var i=0; i<numberOfEmptyDaysEnd; i++){
+                this.push('dateJSON.days', ".");
+            }
+
+            //used for fixing the height. If number of rows is less than 6, than we need to complete it to 6
+            var rows = this.dateJSON.days.length/7;
+            if(rows<6){
+              var diff = 6-rows;
+              for(var i=0; i<diff; i++){
+                for(j=0; j<7; j++){
+                  this.push('dateJSON.days', ".");
+                }
+              }
+            }
+
+            if(this._isDaySelected(this.dateJSON.day)){
+              this.$.daySelector.select(this.dateJSON.day);
+            }else{
+              this.$.daySelector.select(null);
+            }
+
+        },
+
+        _isYearSelected: function(date, year){
+          return date.year()==year;
+        },
+
+        _nextMonth: function(){
+            this.date.add(1,'months');
+            this.date.date(1);
+            this.$.monthsSelector.select(this.date.month());
+        },
+
+        _previousMonth: function(){
+            this.date.subtract(1,'months');
+            this.date.date(1);
+            this.$.monthsSelector.select(this.date.month());
+        },
+
+        _showMonths: function(){
+          this.$.edkMonthsContainer.style.display = "block";
+        },
+
+        _changeMonth: function(e, detail){
+          var newMonth = detail.item.outerText;
+          this.date.month(newMonth);
+          this._fillCalendar();
+          this.$.edkMonthsContainer.style.display = "none";
+        },
+
+        _changeYear: function(e, detail){
+          var selectedIdx = this.$.edkYears.selectedIndex;
+          var selectedYear = this.years[selectedIdx];
+          this.date.year(selectedYear);
+          this._fillCalendar();
+        },
+
+        _computeHeaderDate: function(month, year){
+          return month + " " + year;
+        },
+
+        _isToday: function(day){
+          var dateCurrent = moment([this.dateJSON.year, this.dateJSON.month, day]);
+          return dateCurrent.isSame(this.today);
+        },
+
+        _computeDayButtonClass: function(value, day){
+          var classStr = "edk-date-picker-button";
+          if(this._isToday(day)){
+            classStr += " today";
+          }
+          if(this._isInTheRange(value, day)){
+            classStr += " range";
+          }
+          if(this._isDaySelected(value, day)){
+            classStr += " selected";
+          }
+          if(day==="."){
+            classStr += " empty";
+          }
+          return classStr;
+        },
+
+        _computeSelectableClass: function(value, day){
+          return day==="." || this._isDaySelected(value, day) || !this._isValid(day) ? "" : "selectable";
+        },
+
+        _computeIsDayDisabled: function(value, day){
+          return this._isDaySelected(value, day) || !this._isValid(day);
+        },
+
+        _isValid: function(day){
+          var dateCurrent = moment([this.dateJSON.year, this.dateJSON.month, day]);
+          return dateCurrent.isAfter(this.min) && dateCurrent.isBefore(this.max);
+        },
+
+        _isInTheRange: function(value, day){
+          if(this.rangeSelector && value!=null && value[0]!=null && value[1]!=null){
+            var dateCurrent = moment([this.dateJSON.year, this.dateJSON.month, day]);
+            var startDate = moment(value[0], this.format);
+            var endDate = moment(value[1], this.format);
+            return dateCurrent.isBetween(startDate, endDate);
+          }
+          return false;
+        },
+
+        _isDaySelected: function(value, day){
+          var dateCurrent = moment([this.dateJSON.year, this.dateJSON.month, day]);
+          if(this.rangeSelector){
+            var date1 = value==null || value[0]==null ? null : moment(value[0], this.format);
+            var date2 = value==null || value[1]==null ? null : moment(value[1], this.format);
+            return dateCurrent.isSame(date1) || dateCurrent.isSame(date2);
+          }else{
+            var date1 = value==null ? null : moment(value, this.format);
+            return dateCurrent.isSame(date1);
+          }
+          return false;
+        },
+
+        _selectDay: function(e, detail){
+          var newDay = detail.item.firstElementChild.outerText;
+          this.date.date(newDay);
+          this._fillCalendar();
+
+          if(!this.rangeSelector){
+            if(this._isValid(newDay)){
+              this.value = this.date.format(this.format);
+              this.fire('date-selected', this.value);
+            }
+          }else{
+            if(this.value==null || this.value[1]!=null){
+              this.value = [this.date.format(this.format)];
+            }else{
+              this.value = [this.value[0], this.date.format(this.format)];
+              if( moment(this.value[1],this.format).isBefore(moment(this.value[0],this.format)) ){
+                var tmpDate = this.value[1];
+                this.value = [tmpDate, this.value[0]]
+                tmpDate = null;
+              }
+              this.fire('date-selected', this.value);
+            }
+          }
+        },
+
+        _okClicked: function(){
+          this.fire('ok-clicked', this.value);
+        }
+
+  });
+
+</script>
+</dom-module>
