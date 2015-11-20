@@ -7,7 +7,7 @@ A custom web component element which provides a custom date picker and developed
 ![Landscape Mode View](https://raw.github.com/Turksat/edk-date-picker/master/landscape-mode.png)
 
 
-## Dependencies
+## Dependenciess
 
 Element dependencies are managed via [Bower](http://bower.io/). You can
 install that via:
